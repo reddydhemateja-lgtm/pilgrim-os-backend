@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const uri = "mongodb+srv://dhematejareddy_db_user:30eYKcgEvj80C1Cd@cluster0.dyhkebq.mongodb.net/pilgrimosd?appName=Cluster0";
-   await mongoose.connect(uri, {
-  serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 30000,
-  family: 4,
-  bufferCommands: false,
-});
+    const uri = process.env.MONGODB_URI;
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      family: 4,
+      bufferCommands: false,
+    });
     console.log('✅ MongoDB connected successfully!');
   } catch (error) {
     console.log('❌ MongoDB connection error:', error.message);
@@ -25,6 +25,7 @@ const guideSchema = new mongoose.Schema({
   speciality: String,
   languages: [String],
   verified: { type: Boolean, default: false },
+  status: { type: String, default: 'pending' }, // 'pending' | 'verified' | 'rejected'
   createdAt: { type: Date, default: Date.now },
 });
 

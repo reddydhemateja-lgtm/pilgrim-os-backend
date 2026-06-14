@@ -70,8 +70,17 @@ app.post('/api/guides/register', async (req, res) => {
 
 app.get('/api/guides', async (req, res) => {
   try {
-    const guides = await Guide.find({ verified: true });
+    const guides = await Guide.find({ status: 'verified' });
     res.json({ success: true, data: guides });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/guides/all', async (req, res) => {
+  try {
+    const guides = await Guide.find().maxTimeMS(20000);
+    res.json({ success: true, total: guides.length, data: guides });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -91,15 +100,6 @@ app.post('/api/subscribe', async (req, res) => {
 });
 
 // ── HOTEL ROUTES ──
-app.get('/api/guides/all', async (req, res) => {
-  try {
-    const guides = await Guide.find().maxTimeMS(20000);
-    res.json({ success: true, total: guides.length, data: guides });
-  } catch (error) {
-    res.json({ success: false, message: error.message });
-  }
-});
-
 app.post('/api/hotels/register', async (req, res) => {
   try {
     const { name, distance, price, rating, type, phone, address } = req.body;
@@ -107,6 +107,54 @@ app.post('/api/hotels/register', async (req, res) => {
     await hotel.save();
     console.log(`✅ New hotel registered: ${name}`);
     res.json({ success: true, message: 'Hotel listed successfully!' });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// ── ADMIN ROUTES ──
+// GET all guides (admin only)
+app.get('/api/admin/guides', async (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const guides = await Guide.find().sort({ createdAt: -1 });
+    res.json({ success: true, total: guides.length, data: guides });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// PATCH verify / reject / reset a guide
+app.patch('/api/admin/guides/:id', async (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const { status } = req.body; // 'verified' | 'rejected' | 'pending'
+    const guide = await Guide.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    res.json({ success: true, data: guide });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// GET all subscribers (admin only)
+app.get('/api/admin/subscribers', async (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const subscribers = await Subscriber.find().sort({ createdAt: -1 });
+    res.json({ success: true, total: subscribers.length, data: subscribers });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
