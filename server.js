@@ -91,12 +91,11 @@ app.post('/api/subscribe', async (req, res) => {
 });
 
 // ── HOTEL ROUTES ──
-app.get('/api/guides', async (req, res) => {
+app.get('/api/guides/all', async (req, res) => {
   try {
-    const guides = await Guide.find({ verified: true }).maxTimeMS(20000);
-    res.json({ success: true, data: guides });
+    const guides = await Guide.find().maxTimeMS(20000);
+    res.json({ success: true, total: guides.length, data: guides });
   } catch (error) {
-    console.log('Guides error:', error.message);
     res.json({ success: false, message: error.message });
   }
 });
