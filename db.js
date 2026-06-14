@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const connectDB = async () => {
   try {
-const uri = "mongodb://dhematejareddy_db_user:30eYKcgEvj80C1Cd@ac-ysgjjhh-shard-00-00.dyhkebq.mongodb.net:27017,ac-ysgjjhh-shard-00-01.dyhkebq.mongodb.net:27017,ac-ysgjjhh-shard-00-02.dyhkebq.mongodb.net:27017/pilgrimosd?ssl=true&replicaSet=atlas-vcov9z-shard-0&authSource=admin&appName=Cluster0";
+    const uri = "mongodb+srv://dhematejareddy_db_user:30eYKcgEvj80C1Cd@cluster0.dyhkebq.mongodb.net/pilgrimosd?appName=Cluster0";
+   await mongoose.connect(uri, {
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
+  family: 4,
+  bufferCommands: false,
+});
     console.log('✅ MongoDB connected successfully!');
   } catch (error) {
     console.log('❌ MongoDB connection error:', error.message);
@@ -11,9 +17,6 @@ const uri = "mongodb://dhematejareddy_db_user:30eYKcgEvj80C1Cd@ac-ysgjjhh-shard-
   }
 };
 
-// Collections/Models
-
-// 1. Guide Registration
 const guideSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: { type: String, required: true },
@@ -25,7 +28,6 @@ const guideSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// 2. Notification Subscribers
 const subscriberSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   date: String,
@@ -33,7 +35,6 @@ const subscriberSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// 3. Hotel Listings
 const hotelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   distance: String,
