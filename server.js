@@ -58,7 +58,23 @@ app.get('/api/darshan', (req, res) => {
 app.post('/api/guides/register', async (req, res) => {
   try {
     const { name, phone, aadhar, experience, speciality, languages } = req.body;
-    const guide = new Guide({ name, phone, aadhar, experience, speciality, languages });
+
+    if (!name || name.trim().length < 2)
+      return res.status(400).json({ success: false, message: 'Name must be at least 2 characters.' });
+    if (!phone || !/^[6-9]\d{9}$/.test(phone))
+      return res.status(400).json({ success: false, message: 'Enter a valid 10-digit Indian mobile number.' });
+    if (!aadhar || !/^\d{12}$/.test(aadhar))
+      return res.status(400).json({ success: false, message: 'Aadhar must be exactly 12 digits.' });
+
+    const existingPhone = await Guide.findOne({ phone });
+    if (existingPhone)
+      return res.status(400).json({ success: false, message: 'This phone number is already registered.' });
+
+    const existingAadhar = await Guide.findOne({ aadhar });
+    if (existingAadhar)
+      return res.status(400).json({ success: false, message: 'This Aadhar is already registered.' });
+
+    const guide = new Guide({ name: name.trim(), phone, aadhar, experience, speciality, languages });
     await guide.save();
     console.log(`✅ New guide registered: ${name}`);
     res.json({ success: true, message: 'Application submitted successfully!' });
@@ -100,6 +116,15 @@ app.post('/api/subscribe', async (req, res) => {
 });
 
 // ── HOTEL ROUTES ──
+app.get('/api/hotels', async (req, res) => {
+  try {
+    const hotels = await Hotel.find().sort({ distance: 1 });
+    res.json({ success: true, data: hotels });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
 app.post('/api/hotels/register', async (req, res) => {
   try {
     const { name, distance, price, rating, type, phone, address } = req.body;
@@ -113,12 +138,10 @@ app.post('/api/hotels/register', async (req, res) => {
 });
 
 // ── ADMIN ROUTES ──
-// GET all guides (admin only)
 app.get('/api/admin/guides', async (req, res) => {
   const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_KEY) {
+  if (adminKey !== process.env.ADMIN_KEY)
     return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
     const guides = await Guide.find().sort({ createdAt: -1 });
     res.json({ success: true, total: guides.length, data: guides });
@@ -127,34 +150,46 @@ app.get('/api/admin/guides', async (req, res) => {
   }
 });
 
-// PATCH verify / reject / reset a guide
 app.patch('/api/admin/guides/:id', async (req, res) => {
   const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_KEY) {
+  if (adminKey !== process.env.ADMIN_KEY)
     return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    const { status } = req.body; // 'verified' | 'rejected' | 'pending'
-    const guide = await Guide.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+    const { status } = req.body;
+    const guide = await Guide.findByIdAndUpdate(req.params.id, { status }, { new: true });
     res.json({ success: true, data: guide });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 });
 
-// GET all subscribers (admin only)
 app.get('/api/admin/subscribers', async (req, res) => {
   const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_KEY) {
+  if (adminKey !== process.env.ADMIN_KEY)
     return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
     const subscribers = await Subscriber.find().sort({ createdAt: -1 });
     res.json({ success: true, total: subscribers.length, data: subscribers });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// Seed real Tirupati hotels (run once)
+app.post('/api/admin/seed-hotels', async (req, res) => {
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey !== process.env.ADMIN_KEY)
+    return res.status(401).end();
+  try {
+    await Hotel.insertMany([
+      { name: 'TTD Srinivasam Guest House', distance: '0.2', price: '800', rating: '4.5', type: 'Budget', available: true, phone: '0877-2264000', address: 'Alipiri Road, Tirupati' },
+      { name: 'Hotel Annamaiah', distance: '0.3', price: '950', rating: '4.1', type: 'Budget', available: true, phone: '0877-2265000', address: 'Govinda Raja Street, Tirupati' },
+      { name: 'Hotel Bliss', distance: '0.5', price: '1200', rating: '4.2', type: 'Budget', available: true, phone: '0877-2287777', address: 'Tilak Road, Tirupati' },
+      { name: 'Hotel Minerva', distance: '0.8', price: '1800', rating: '4.0', type: 'Mid-range', available: false, phone: '0877-2225566', address: 'TP Area, Tirupati' },
+      { name: 'Sindoori Hotel', distance: '1.0', price: '2200', rating: '4.3', type: 'Mid-range', available: true, phone: '0877-2289900', address: 'Leela Mahal Road, Tirupati' },
+      { name: 'Marasa Sarovar Premiere', distance: '1.2', price: '4500', rating: '4.8', type: 'Premium', available: true, phone: '0877-6677788', address: 'Leela Mahal Circle, Tirupati' },
+    ]);
+    res.json({ success: true, message: 'Hotels seeded!' });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
